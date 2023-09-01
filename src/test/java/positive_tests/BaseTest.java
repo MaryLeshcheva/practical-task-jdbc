@@ -36,38 +36,43 @@ public class BaseTest {
 
 
     public static long addProduct(String name, String type, boolean isExotic) throws SQLException { // метод добавления товара
-        PreparedStatement insertStatement = connection.
-                prepareStatement(Queries.insertNewProduct, Statement.RETURN_GENERATED_KEYS);
-        int isExoticNumber = isExotic ? 1 : 0;
-        insertStatement.setString(1, name);
-        insertStatement.setString(2, type);
-        insertStatement.setInt(3, isExoticNumber);
+        try (PreparedStatement insertStatement = connection.
+                prepareStatement(Queries.insertNewProduct, Statement.RETURN_GENERATED_KEYS)) {
+            int isExoticNumber = isExotic ? 1 : 0;
+            insertStatement.setString(1, name);
+            insertStatement.setString(2, type);
+            insertStatement.setInt(3, isExoticNumber);
 
-        int affectedRows = insertStatement.executeUpdate();
-        if (affectedRows == 0) {
-            throw new SQLException("Creating user failed, no rows affected.");
-        }
-        ResultSet resultSet = insertStatement.getGeneratedKeys();
-        long id = 0;
-        while (resultSet.next()) {
-            id = resultSet.getLong(1);
-        }
+            int affectedRows = insertStatement.executeUpdate();
+            if (affectedRows == 0) {
+                throw new SQLException("Creating user failed, no rows affected.");
+            }
+            try (ResultSet resultSet = insertStatement.getGeneratedKeys()) {
+                long id = 0;
+                while (resultSet.next()) {
+                    id = resultSet.getLong(1);
+                }
 
-        return id;
+                return id;
+            }
+        }
     }
 
     public static void checkProductAvailability(long id) throws SQLException { //метод проверки добавления товара
-        PreparedStatement selectStatement = connection.prepareStatement(Queries.selectProductById);
-        selectStatement.setLong(1, id);
-        ResultSet resultSet = selectStatement.executeQuery();
-        boolean result = resultSet.next();
-        Assertions.assertTrue(result, "Товар с id " + id + " не найден в таблице");
+        try (PreparedStatement selectStatement = connection.prepareStatement(Queries.selectProductById)) {
+            selectStatement.setLong(1, id);
+            try (ResultSet resultSet = selectStatement.executeQuery()) {
+                boolean result = resultSet.next();
+                Assertions.assertTrue(result, "Товар с id " + id + " не найден в таблице");
+            }
+        }
     }
 
     protected void deleteProduct(long id) throws SQLException { //метод удаления товара
-        PreparedStatement deleteStatement = connection.prepareStatement(Queries.deleteProduct);
-        deleteStatement.setLong(1, id);
-        deleteStatement.executeUpdate();
+        try (PreparedStatement deleteStatement = connection.prepareStatement(Queries.deleteProduct)) {
+            deleteStatement.setLong(1, id);
+            deleteStatement.executeUpdate();
+        }
     }
 
 }
